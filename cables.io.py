@@ -1,10 +1,13 @@
 # -*- coding=utf-8 -*-
 '''
-读取cables_io.xls中的信息进行布线
+读取cables_io.xls中的信息进行布线;
+xls文件中表头格式"序号	出线方向	回路数	电压等级	名称"
+
 '''
 import svgwrite
 import xlrd
 
+#读取xls中数据
 def read_xls(file):
     xls= xlrd.open_workbook(file)
     table = xls.sheet_by_index(0)
@@ -13,42 +16,55 @@ def read_xls(file):
         data[table.row_values(i)[0]] = table.row_values(i)[1:]
     return data
 
-print read_xls('cable_io.xls')
-
+#绘制变电站
 def station_draw(dwg,x,y):
     dwg.add(dwg.rect((x, y),(130,130), 0, 0))
 
-
-
+#绘制出线
 def cable_draw(dwg,x,y,cables):
+    #方向与坐标对应表
     direction = {u"南":(x+65,y+130,10,0),
                  u"北":(x+65,y,-10,0),
                  u"西":(x,y+65,0,-10),
                  u"东":(x+130,y+65,0,10)}
+    #分条目绘制进出线
     for i in range(len(cables)-1):
-        cable = []
+
         print cables[i+1][0],i
-        dir = cables[i+1][0]
-        num = cables[i+1][1]
-        vol = cables[i+1][2]
-        name = cables[i+1][3]
-        s_x,s_y,move_x,move_y = direction[dir]
+        dir = cables[i+1][0] #方向
+        num = cables[i+1][1] #回路数
+        vol = cables[i+1][2] #电压等级
+        name = cables[i+1][3] #路名
+        s_x,s_y,move_x,move_y = direction[dir] #根据方向读取坐标
+
         print dir,x,y,direction
         for j in range(int(num)):
+
             start_x = s_x+j*move_x
             start_y = s_y+j*move_y
-            start_point = (start_x,start_y)
+            start_point = (start_x,start_y) #起始点坐标
+
             end_x = start_x + 10*move_y
             end_y = start_y + 10*move_x
-            end_point = (end_x,end_y)
+            end_point = (end_x,end_y) #终点坐标
+
             dwg.add(dwg.line(start_point, end_point, stroke=svgwrite.rgb(10, 10, 16, '%')))
-        dwg.add(dwg.text(dir, end_point, fill='red'))
+
+        dwg.add(dwg.text(name+'('+str(int(vol))+')', end_point, fill='red'))
+
         print start_point,end_point
 
 dwg1 = svgwrite.Drawing('test.svg', profile='tiny')
-station_draw(dwg1,400,400)
+#变电站起始坐标
+station_x = 400
+station_y = 400
+#绘制变电站
+station_draw(dwg1,station_x,station_y)
+#读取进出线数据
 cables_xls = read_xls('cable_io.xls')
-cable_draw(dwg1,400,400,cables_xls)
+#绘制进出线
+cable_draw(dwg1,station_x,station_y,cables_xls)
+#保存矢量图
 dwg1.save()
 
 '''
